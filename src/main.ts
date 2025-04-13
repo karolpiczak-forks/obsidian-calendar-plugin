@@ -6,8 +6,8 @@ import { settings } from "./ui/stores";
 import {
   appHasPeriodicNotesPluginLoaded,
   CalendarSettingsTab,
-  ISettings,
 } from "./settings";
+import type { ISettings } from "./settings";
 import CalendarView from "./view";
 
 declare global {
@@ -19,8 +19,8 @@ declare global {
 }
 
 export default class CalendarPlugin extends Plugin {
-  public options: ISettings;
-  private view: CalendarView;
+  public options!: ISettings; // Using definite assignment assertion
+  private view!: CalendarView; // Using definite assignment assertion
 
   onunload(): void {
     this.app.workspace
@@ -77,9 +77,9 @@ export default class CalendarPlugin extends Plugin {
     if (this.app.workspace.layoutReady) {
       this.initLeaf();
     } else {
-      this.registerEvent(
-        this.app.workspace.on("layout-ready", this.initLeaf.bind(this))
-      );
+      // Use a more generic approach to handle the layout-ready event
+      // since the type definition has changed in newer Obsidian versions
+      this.app.workspace.onLayoutReady(this.initLeaf.bind(this));
     }
   }
 
@@ -87,9 +87,12 @@ export default class CalendarPlugin extends Plugin {
     if (this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).length) {
       return;
     }
-    this.app.workspace.getRightLeaf(false).setViewState({
-      type: VIEW_TYPE_CALENDAR,
-    });
+    const leaf = this.app.workspace.getRightLeaf(false);
+    if (leaf) {
+      leaf.setViewState({
+        type: VIEW_TYPE_CALENDAR,
+      });
+    }
   }
 
   async loadOptions(): Promise<void> {

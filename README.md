@@ -1,5 +1,13 @@
 # obsidian-calendar-plugin
 
+## Install
+
+- `npm run build`
+- copy `main.js`, `manifest.json`
+
+
+## Overview
+
 This plugin for [Obsidian](https://obsidian.md/) creates a simple Calendar view for visualizing and navigating between your daily notes.
 
 ![screenshot-full](https://raw.githubusercontent.com/liamcain/obsidian-calendar-plugin/master/images/screenshot-full.png)

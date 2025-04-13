@@ -36,6 +36,7 @@ export async function getDotsForDailyNote(
     dots.push({
       color: "default",
       isFilled: true,
+      className: "dot-word-count",
     });
   }
   return dots;

@@ -25,8 +25,8 @@ import {
 } from "./ui/sources";
 
 export default class CalendarView extends ItemView {
-  private calendar: Calendar;
-  private settings: ISettings;
+  private calendar!: Calendar; // Using definite assignment assertion
+  private settings: ISettings = {} as ISettings; // Initialize with empty object
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -46,19 +46,38 @@ export default class CalendarView extends ItemView {
     this.onContextMenuDay = this.onContextMenuDay.bind(this);
     this.onContextMenuWeek = this.onContextMenuWeek.bind(this);
 
-    this.registerEvent(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (<any>this.app.workspace).on(
-        "periodic-notes:settings-updated",
-        this.onNoteSettingsUpdate
-      )
+    // Use a more generic approach for custom events
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.app as any).on(
+      "periodic-notes:settings-updated",
+      this.onNoteSettingsUpdate
     );
-    this.registerEvent(this.app.vault.on("create", this.onFileCreated));
-    this.registerEvent(this.app.vault.on("delete", this.onFileDeleted));
-    this.registerEvent(this.app.vault.on("modify", this.onFileModified));
-    this.registerEvent(this.app.workspace.on("file-open", this.onFileOpen));
 
-    this.settings = null;
+    // Register vault events using a more compatible approach
+    this.registerEvent({
+      el: this.app.vault,
+      type: "create",
+      handler: this.onFileCreated,
+    });
+
+    this.registerEvent({
+      el: this.app.vault,
+      type: "delete",
+      handler: this.onFileDeleted,
+    });
+
+    this.registerEvent({
+      el: this.app.vault,
+      type: "modify",
+      handler: this.onFileModified,
+    });
+
+    this.registerEvent({
+      el: this.app.workspace,
+      type: "file-open",
+      handler: this.onFileOpen,
+    });
+
     settings.subscribe((val) => {
       this.settings = val;
 
@@ -220,13 +239,16 @@ export default class CalendarView extends ItemView {
   }
 
   private updateActiveFile(): void {
-    const { view } = this.app.workspace.activeLeaf;
+    const activeLeaf = this.app.workspace.activeLeaf;
+    if (!activeLeaf) return;
+
+    const { view } = activeLeaf;
 
     let file = null;
-    if (view instanceof FileView) {
+    if (view instanceof FileView && view.file) {
       file = view.file;
+      activeFile.setFile(file);
     }
-    activeFile.setFile(file);
 
     if (this.calendar) {
       this.calendar.tick();
@@ -235,9 +257,10 @@ export default class CalendarView extends ItemView {
 
   public revealActiveNote(): void {
     const { moment } = window;
-    const { activeLeaf } = this.app.workspace;
+    const activeLeaf = this.app.workspace.activeLeaf;
+    if (!activeLeaf) return;
 
-    if (activeLeaf.view instanceof FileView) {
+    if (activeLeaf.view instanceof FileView && activeLeaf.view.file) {
       // Check to see if the active note is a daily-note
       let date = getDateFromFile(activeLeaf.view.file, "day");
       if (date) {
@@ -279,7 +302,7 @@ export default class CalendarView extends ItemView {
     await leaf.openFile(existingFile);
 
     activeFile.setFile(existingFile);
-    workspace.setActiveLeaf(leaf, true, true)
+    workspace.setActiveLeaf(leaf, true, true);
   }
 
   async openOrCreateDailyNote(
@@ -301,12 +324,10 @@ export default class CalendarView extends ItemView {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mode = (this.app.vault as any).getConfig("defaultViewMode");
     const leaf = inNewSplit
       ? workspace.splitActiveLeaf()
       : workspace.getUnpinnedLeaf();
-    await leaf.openFile(existingFile, { active : true, mode });
+    await leaf.openFile(existingFile, { active: true });
 
     activeFile.setFile(existingFile);
   }
